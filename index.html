@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codec Explorer</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Main Styles -->
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Controls -->
+        <aside class="sidebar glass-panel">
+            <header class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">📶</span>
+                    <h1>Codec Explorer</h1>
+                </div>
+                <p class="subtitle">EEM562 Signal Coding</p>
+            </header>
+
+            <nav class="module-nav">
+                <button class="nav-btn active" data-target="module-input">1. Girdi Sinyali</button>
+                <button class="nav-btn" data-target="module-quantization">2. Nicemleme</button>
+                <button class="nav-btn" data-target="module-transform">3. Dönüşümler</button>
+            </nav>
+
+            <div class="controls-container">
+                <!-- Input Controls -->
+                <div id="module-input" class="control-group active">
+                    <h3>Sinyal Yükle</h3>
+                    <div class="input-wrapper">
+                        <label for="image-upload" class="file-upload-btn">
+                            Görüntü Seç
+                            <input type="file" id="image-upload" accept="image/jpeg, image/png, image/webp" hidden>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Quantization Controls -->
+                <div id="module-quantization" class="control-group hidden">
+                    <h3>Skalar Nicemleme</h3>
+                    <div class="slider-group">
+                        <label for="quantization-bits">
+                            Bit Derinliği: <span id="bit-val">8</span> bit
+                        </label>
+                        <input type="range" id="quantization-bits" min="1" max="8" value="8" step="1">
+                    </div>
+                    <button class="action-btn" id="btn-apply-quantization">Nicemle</button>
+                </div>
+
+                <!-- Transform Controls -->
+                <div id="module-transform" class="control-group hidden">
+                    <h3>Dönüşüm Kodlama</h3>
+                    <div class="select-group">
+                        <label for="transform-type">Dönüşüm Türü</label>
+                        <select id="transform-type">
+                            <option value="dct">2D DCT (8x8)</option>
+                            <option value="dwt">2D DWT (Haar)</option>
+                        </select>
+                    </div>
+                    <div class="slider-group">
+                        <label for="transform-threshold">
+                            Eşikleme (Threshold): <span id="thresh-val">0</span>
+                        </label>
+                        <input type="range" id="transform-threshold" min="0" max="255" value="0" step="1">
+                    </div>
+                    <button class="action-btn" id="btn-apply-transform">Dönüşümü Uygula</button>
+                </div>
+            </div>
+            
+            <footer class="sidebar-footer">
+                <div class="stats-panel">
+                    <div class="stat-row">
+                        <span>MSE:</span> <span id="stat-mse">0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>PSNR:</span> <span id="stat-psnr">∞ dB</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>BPP:</span> <span id="stat-bpp">8.00</span>
+                    </div>
+                </div>
+            </footer>
+        </aside>
+
+        <!-- Main Visualization Area -->
+        <main class="workspace">
+            <div class="canvas-container glass-panel">
+                <div class="canvas-header">
+                    <h2>Orijinal Sinyal</h2>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="canvas-original" width="512" height="512"></canvas>
+                </div>
+            </div>
+
+            <div class="canvas-container glass-panel">
+                <div class="canvas-header">
+                    <h2 id="processed-title">İşlenmiş Sinyal</h2>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="canvas-processed" width="512" height="512"></canvas>
+                </div>
+            </div>
+            
+            <div class="canvas-container full-width glass-panel">
+                <div class="canvas-header">
+                    <h2>Analiz / Dönüşüm Uzayı</h2>
+                </div>
+                <div class="canvas-wrapper analysis-wrapper">
+                    <canvas id="canvas-analysis" width="1024" height="256"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./js/main.js"></script>
+</body>
+</html>
