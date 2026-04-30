@@ -1,125 +1,165 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Codec Explorer</title>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Main Styles -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar Controls -->
-        <aside class="sidebar glass-panel">
-            <header class="sidebar-header">
-                <div class="logo">
-                    <span class="logo-icon">📶</span>
-                    <h1>Codec Explorer</h1>
-                </div>
-                <p class="subtitle">EEM562 Signal Coding</p>
-            </header>
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <button class="nav-btn active" data-target="module-dct">DCT / JPEG</button>
+            <button class="nav-btn" data-target="module-huffman">Huffman</button>
+            <button class="nav-btn" data-target="module-pcm">PCM • DPCM</button>
+            <button class="nav-btn" data-target="module-wavelet">Wavelet (Haar)</button>
+        </nav>
 
-            <nav class="module-nav">
-                <button class="nav-btn active" data-target="module-input">1. Girdi Sinyali</button>
-                <button class="nav-btn" data-target="module-quantization">2. Nicemleme</button>
-                <button class="nav-btn" data-target="module-transform">3. Dönüşümler</button>
-            </nav>
-
-            <div class="controls-container">
-                <!-- Input Controls -->
-                <div id="module-input" class="control-group active">
-                    <h3>Sinyal Yükle</h3>
-                    <div class="input-wrapper">
-                        <label for="image-upload" class="file-upload-btn">
-                            Görüntü Seç
-                            <input type="file" id="image-upload" accept="image/jpeg, image/png, image/webp" hidden>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Quantization Controls -->
-                <div id="module-quantization" class="control-group hidden">
-                    <h3>Skalar Nicemleme</h3>
-                    <div class="slider-group">
-                        <label for="quantization-bits">
-                            Bit Derinliği: <span id="bit-val">8</span> bit
-                        </label>
-                        <input type="range" id="quantization-bits" min="1" max="8" value="8" step="1">
-                    </div>
-                    <button class="action-btn" id="btn-apply-quantization">Nicemle</button>
-                </div>
-
-                <!-- Transform Controls -->
-                <div id="module-transform" class="control-group hidden">
-                    <h3>Dönüşüm Kodlama</h3>
-                    <div class="select-group">
-                        <label for="transform-type">Dönüşüm Türü</label>
-                        <select id="transform-type">
-                            <option value="dct">2D DCT (8x8)</option>
-                            <option value="dwt">2D DWT (Haar)</option>
-                        </select>
-                    </div>
-                    <div class="slider-group">
-                        <label for="transform-threshold">
-                            Eşikleme (Threshold): <span id="thresh-val">0</span>
-                        </label>
-                        <input type="range" id="transform-threshold" min="0" max="255" value="0" step="1">
-                    </div>
-                    <button class="action-btn" id="btn-apply-transform">Dönüşümü Uygula</button>
-                </div>
-            </div>
+        <!-- Main Content Area -->
+        <main class="content-area">
             
-            <footer class="sidebar-footer">
-                <div class="stats-panel">
-                    <div class="stat-row">
-                        <span>MSE:</span> <span id="stat-mse">0.00</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>PSNR:</span> <span id="stat-psnr">∞ dB</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>BPP:</span> <span id="stat-bpp">8.00</span>
-                    </div>
-                </div>
-            </footer>
-        </aside>
+            <!-- ========================================== -->
+            <!-- MODULE 1: DCT / JPEG SIMULATOR             -->
+            <!-- ========================================== -->
+            <div id="module-dct" class="module-view active">
+                <div class="layout-grid">
+                    
+                    <!-- Left Column -->
+                    <div class="col-left">
+                        
+                        <!-- Controls Card -->
+                        <div class="card">
+                            <div class="card-header">BLOCK PATTERN</div>
+                            <div class="button-group-grid">
+                                <button class="pattern-btn active" data-pattern="gradient">gradient</button>
+                                <button class="pattern-btn" data-pattern="edge">edge</button>
+                                <button class="pattern-btn" data-pattern="hi-freq">hi-freq</button>
+                                <button class="pattern-btn" data-pattern="smooth">smooth</button>
+                                <label for="dct-image-upload" class="pattern-btn" style="grid-column: 1 / -1; text-align: center; border-style: dashed; margin-top: 4px;">
+                                    + Upload Image (8x8 crop)
+                                    <input type="file" id="dct-image-upload" accept="image/jpeg, image/png, image/webp" hidden>
+                                </label>
+                            </div>
+                            
+                            <div class="slider-container mt-4">
+                                <div class="slider-header">
+                                    <span>JPEG quality</span>
+                                    <span class="value" id="dct-q-val">Q=50</span>
+                                </div>
+                                <input type="range" min="1" max="100" value="50" class="custom-slider" id="dct-q-slider">
+                            </div>
+                        </div>
 
-        <!-- Main Visualization Area -->
-        <main class="workspace">
-            <div class="canvas-container glass-panel">
-                <div class="canvas-header">
-                    <h2>Orijinal Sinyal</h2>
-                </div>
-                <div class="canvas-wrapper">
-                    <canvas id="canvas-original" width="512" height="512"></canvas>
+                        <!-- Metrics Card -->
+                        <div class="card">
+                            <div class="card-header">METRICS</div>
+                            <div class="metrics-list">
+                                <div class="metric-row">
+                                    <span class="metric-label">Non-zero coeff</span>
+                                    <span class="metric-value" id="dct-metric-nonzero">15/64</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">PSNR</span>
+                                    <span class="metric-value" id="dct-metric-psnr">37.2 dB</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">MSE</span>
+                                    <span class="metric-value" id="dct-metric-mse">12.27</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">Est. compression</span>
+                                    <span class="metric-value" id="dct-metric-comp">~4.3×</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Matrix Card -->
+                        <div class="card">
+                            <div class="card-header">QUANT. MATRIX (SCALED)</div>
+                            <div class="matrix-grid" id="quant-matrix-display">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-right">
+                        
+                        <!-- Pipeline Card -->
+                        <div class="card pipeline-card">
+                            <div class="card-header">DCT PIPELINE — 8×8 BLOCK</div>
+                            
+                            <div class="pipeline-stage-container">
+                                <!-- Top Row -->
+                                <div class="pipeline-row">
+                                    <div class="pipeline-stage">
+                                        <div class="stage-title">Original<br>pixels</div>
+                                        <canvas id="canvas-dct-original" width="160" height="160"></canvas>
+                                    </div>
+                                    
+                                    <div class="arrow">→</div>
+                                    
+                                    <div class="pipeline-stage">
+                                        <div class="stage-title">DCT<br>blue=+, red=-</div>
+                                        <canvas id="canvas-dct-transform" width="160" height="160"></canvas>
+                                    </div>
+
+                                    <div class="arrow">→</div>
+                                    
+                                    <div class="pipeline-stage">
+                                        <div class="stage-title">Quantized<br><span id="dct-title-nonzero">15 non-zero</span></div>
+                                        <canvas id="canvas-dct-quantized" width="160" height="160"></canvas>
+                                    </div>
+                                    
+                                    <div class="arrow" style="opacity: 0;">→</div> <!-- Spacer -->
+                                </div>
+                                
+                                <!-- Bottom Row -->
+                                <div class="pipeline-row mt-4">
+                                    <div class="pipeline-stage">
+                                        <div class="stage-title">Reconstructed<br>PSNR <span id="dct-title-psnr">37.2</span> dB</div>
+                                        <canvas id="canvas-dct-reconstructed" width="160" height="160"></canvas>
+                                    </div>
+                                    
+                                    <div class="arrow" style="opacity: 0;">→</div> <!-- Spacer -->
+                                    
+                                    <div class="pipeline-stage">
+                                        <div class="stage-title">Error map<br>|orig-rec|</div>
+                                        <canvas id="canvas-dct-error" width="160" height="160"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Card -->
+                        <div class="card info-card">
+                            <p><strong>DCT</strong> decomposes each 8×8 block into frequency basis functions. Top-left = DC (average brightness); higher-frequency terms carry fine detail. <strong>Quantization</strong> rounds each coefficient — coarser steps at high frequencies produce zeros that compress efficiently. PSNR > 35 dB is visually indistinguishable. <strong>Drag the quality slider</strong> to watch coefficients zeroed out and the error map grow.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="canvas-container glass-panel">
-                <div class="canvas-header">
-                    <h2 id="processed-title">İşlenmiş Sinyal</h2>
-                </div>
-                <div class="canvas-wrapper">
-                    <canvas id="canvas-processed" width="512" height="512"></canvas>
-                </div>
+            <!-- MODULE 2: Huffman (Placeholder for next phase) -->
+            <div id="module-huffman" class="module-view">
+               <div class="card info-card"><p>Huffman Modülü Yapım Aşamasında...</p></div>
             </div>
-            
-            <div class="canvas-container full-width glass-panel">
-                <div class="canvas-header">
-                    <h2>Analiz / Dönüşüm Uzayı</h2>
-                </div>
-                <div class="canvas-wrapper analysis-wrapper">
-                    <canvas id="canvas-analysis" width="1024" height="256"></canvas>
-                </div>
+
+            <!-- MODULE 3: PCM/DPCM (Placeholder for next phase) -->
+            <div id="module-pcm" class="module-view">
+                <div class="card info-card"><p>PCM/DPCM Modülü Yapım Aşamasında...</p></div>
             </div>
+
+            <!-- MODULE 4: Wavelet (Placeholder for next phase) -->
+            <div id="module-wavelet" class="module-view">
+                <div class="card info-card"><p>Wavelet Modülü Yapım Aşamasında...</p></div>
+            </div>
+
         </main>
     </div>
-
-    <!-- Scripts -->
     <script src="./js/main.js"></script>
 </body>
 </html>
