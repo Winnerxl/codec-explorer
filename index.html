@@ -3,163 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Codec Explorer</title>
+    <title>Build Your Own Codec — Interactive Signal Compression Lab</title>
+    <meta name="description" content="Design custom codecs by combining signal processing blocks. Visualize DCT, DWT, Huffman, DPCM and more in real-time.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Top Navigation -->
-        <nav class="top-nav">
-            <button class="nav-btn active" data-target="module-dct">DCT / JPEG</button>
-            <button class="nav-btn" data-target="module-huffman">Huffman</button>
-            <button class="nav-btn" data-target="module-pcm">PCM • DPCM</button>
-            <button class="nav-btn" data-target="module-wavelet">Wavelet (Haar)</button>
-        </nav>
+    <div class="app-shell">
 
-        <!-- Main Content Area -->
-        <main class="content-area">
-            
-            <!-- ========================================== -->
-            <!-- MODULE 1: DCT / JPEG SIMULATOR             -->
-            <!-- ========================================== -->
-            <div id="module-dct" class="module-view active">
-                <div class="layout-grid">
-                    
-                    <!-- Left Column -->
-                    <div class="col-left">
-                        
-                        <!-- Controls Card -->
-                        <div class="card">
-                            <div class="card-header">BLOCK PATTERN</div>
-                            <div class="button-group-grid">
-                                <button class="pattern-btn active" data-pattern="gradient">gradient</button>
-                                <button class="pattern-btn" data-pattern="edge">edge</button>
-                                <button class="pattern-btn" data-pattern="hi-freq">hi-freq</button>
-                                <button class="pattern-btn" data-pattern="smooth">smooth</button>
-                                <label for="dct-image-upload" class="pattern-btn" style="grid-column: 1 / -1; text-align: center; border-style: dashed; margin-top: 4px;">
-                                    + Upload Image (8x8 crop)
-                                    <input type="file" id="dct-image-upload" accept="image/jpeg, image/png, image/webp" hidden>
-                                </label>
-                            </div>
-                            
-                            <div class="slider-container mt-4">
-                                <div class="slider-header">
-                                    <span>JPEG quality</span>
-                                    <span class="value" id="dct-q-val">Q=50</span>
-                                </div>
-                                <input type="range" min="1" max="100" value="50" class="custom-slider" id="dct-q-slider">
-                            </div>
-                        </div>
-
-                        <!-- Metrics Card -->
-                        <div class="card">
-                            <div class="card-header">METRICS</div>
-                            <div class="metrics-list">
-                                <div class="metric-row">
-                                    <span class="metric-label">Non-zero coeff</span>
-                                    <span class="metric-value" id="dct-metric-nonzero">15/64</span>
-                                </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">PSNR</span>
-                                    <span class="metric-value" id="dct-metric-psnr">37.2 dB</span>
-                                </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">MSE</span>
-                                    <span class="metric-value" id="dct-metric-mse">12.27</span>
-                                </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">Est. compression</span>
-                                    <span class="metric-value" id="dct-metric-comp">~4.3×</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Matrix Card -->
-                        <div class="card">
-                            <div class="card-header">QUANT. MATRIX (SCALED)</div>
-                            <div class="matrix-grid" id="quant-matrix-display">
-                                <!-- Filled by JS -->
-                            </div>
-                        </div>
+        <!-- ═══ Header ═══ -->
+        <header class="app-header" id="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">🏗️</span>
+                    <h1>Build Your Own Codec</h1>
+                </div>
+                <span class="header-tagline">Interactive Signal Compression Lab</span>
+            </div>
+            <div class="header-right">
+                <div class="preset-wrapper">
+                    <button class="header-btn" id="preset-toggle">
+                        <span>📋</span> Presets <span class="chevron">▾</span>
+                    </button>
+                    <div class="preset-dropdown" id="preset-dropdown">
+                        <div id="preset-list"></div>
                     </div>
+                </div>
+                <button class="header-btn" id="play-original" title="Play original audio">
+                    <span>🔊</span> Original
+                </button>
+                <button class="header-btn" id="play-reconstructed" title="Play reconstructed audio">
+                    <span>🔈</span> Reconstructed
+                </button>
+                <button class="header-btn accent" id="run-pipeline" title="Re-run pipeline">
+                    ▶ Run
+                </button>
+                <button class="header-btn danger" id="clear-pipeline" title="Clear pipeline">
+                    🗑️ Clear
+                </button>
+            </div>
+        </header>
 
-                    <!-- Right Column -->
-                    <div class="col-right">
-                        
-                        <!-- Pipeline Card -->
-                        <div class="card pipeline-card">
-                            <div class="card-header">DCT PIPELINE — 8×8 BLOCK</div>
-                            
-                            <div class="pipeline-stage-container">
-                                <!-- Top Row -->
-                                <div class="pipeline-row">
-                                    <div class="pipeline-stage">
-                                        <div class="stage-title">Original<br>pixels</div>
-                                        <canvas id="canvas-dct-original" width="160" height="160"></canvas>
-                                    </div>
-                                    
-                                    <div class="arrow">→</div>
-                                    
-                                    <div class="pipeline-stage">
-                                        <div class="stage-title">DCT<br>blue=+, red=-</div>
-                                        <canvas id="canvas-dct-transform" width="160" height="160"></canvas>
-                                    </div>
+        <!-- ═══ Main 3-Column Layout ═══ -->
+        <main class="app-main">
 
-                                    <div class="arrow">→</div>
-                                    
-                                    <div class="pipeline-stage">
-                                        <div class="stage-title">Quantized<br><span id="dct-title-nonzero">15 non-zero</span></div>
-                                        <canvas id="canvas-dct-quantized" width="160" height="160"></canvas>
-                                    </div>
-                                    
-                                    <div class="arrow" style="opacity: 0;">→</div> <!-- Spacer -->
-                                </div>
-                                
-                                <!-- Bottom Row -->
-                                <div class="pipeline-row mt-4">
-                                    <div class="pipeline-stage">
-                                        <div class="stage-title">Reconstructed<br>PSNR <span id="dct-title-psnr">37.2</span> dB</div>
-                                        <canvas id="canvas-dct-reconstructed" width="160" height="160"></canvas>
-                                    </div>
-                                    
-                                    <div class="arrow" style="opacity: 0;">→</div> <!-- Spacer -->
-                                    
-                                    <div class="pipeline-stage">
-                                        <div class="stage-title">Error map<br>|orig-rec|</div>
-                                        <canvas id="canvas-dct-error" width="160" height="160"></canvas>
-                                    </div>
-                                </div>
-                            </div>
+            <!-- ── Left: Block Palette + Metrics ── -->
+            <aside class="panel panel-left" id="panel-left">
+                <div class="panel-section palette-section">
+                    <div class="panel-title">
+                        <span class="panel-title-icon">🧩</span>
+                        Block Palette
+                    </div>
+                    <div id="block-palette-list" class="palette-list"></div>
+                </div>
+
+                <div class="panel-section metrics-section">
+                    <div class="panel-title">
+                        <span class="panel-title-icon">📊</span>
+                        Metrics
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <span class="metric-label">Entropy</span>
+                            <span class="metric-value" id="metric-entropy">—</span>
                         </div>
-
-                        <!-- Info Card -->
-                        <div class="card info-card">
-                            <p><strong>DCT</strong> decomposes each 8×8 block into frequency basis functions. Top-left = DC (average brightness); higher-frequency terms carry fine detail. <strong>Quantization</strong> rounds each coefficient — coarser steps at high frequencies produce zeros that compress efficiently. PSNR > 35 dB is visually indistinguishable. <strong>Drag the quality slider</strong> to watch coefficients zeroed out and the error map grow.</p>
+                        <div class="metric-card">
+                            <span class="metric-label">Avg Bits/Sym</span>
+                            <span class="metric-value" id="metric-avgbits">—</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Compression</span>
+                            <span class="metric-value" id="metric-cr">—</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">MSE</span>
+                            <span class="metric-value" id="metric-mse">—</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">PSNR</span>
+                            <span class="metric-value" id="metric-psnr">—</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">SNR</span>
+                            <span class="metric-value" id="metric-snr">—</span>
+                        </div>
+                        <div class="metric-card metric-card-wide">
+                            <span class="metric-label">Runtime</span>
+                            <span class="metric-value" id="metric-runtime">—</span>
                         </div>
                     </div>
                 </div>
-            </div>
+            </aside>
 
-            <!-- MODULE 2: Huffman (Placeholder for next phase) -->
-            <div id="module-huffman" class="module-view">
-               <div class="card info-card"><p>Huffman Modülü Yapım Aşamasında...</p></div>
-            </div>
+            <!-- ── Center: Pipeline Builder ── -->
+            <section class="panel panel-center" id="panel-center">
+                <div class="panel-title">
+                    <span class="panel-title-icon">⛓️</span>
+                    Pipeline Builder
+                    <span class="panel-hint">Drag blocks from palette or click to add</span>
+                </div>
+                <div class="pipeline-error" id="pipeline-error" style="display:none;"></div>
+                <div class="pipeline-canvas" id="pipeline-blocks">
+                    <div class="pipeline-empty">
+                        <div class="empty-icon">🔧</div>
+                        <p>Drag blocks here to build your codec</p>
+                        <p class="empty-hint">or choose a preset above</p>
+                    </div>
+                </div>
+            </section>
 
-            <!-- MODULE 3: PCM/DPCM (Placeholder for next phase) -->
-            <div id="module-pcm" class="module-view">
-                <div class="card info-card"><p>PCM/DPCM Modülü Yapım Aşamasında...</p></div>
-            </div>
-
-            <!-- MODULE 4: Wavelet (Placeholder for next phase) -->
-            <div id="module-wavelet" class="module-view">
-                <div class="card info-card"><p>Wavelet Modülü Yapım Aşamasında...</p></div>
-            </div>
+            <!-- ── Right: Visualizations ── -->
+            <aside class="panel panel-right" id="panel-right">
+                <div class="panel-title">
+                    <span class="panel-title-icon">📈</span>
+                    Visualizations
+                </div>
+                <div class="viz-scroll" id="viz-container">
+                    <div class="viz-empty"><p>Run a pipeline to see visualizations</p></div>
+                </div>
+            </aside>
 
         </main>
     </div>
-    <script src="./js/main.js"></script>
+
+    <!-- Scripts loaded in dependency order — no modules needed -->
+    <script src="./js/utils/math.js"></script>
+    <script src="./js/utils/dsp.js"></script>
+    <script src="./js/blocks/registry.js"></script>
+    <script src="./js/blocks/input.js"></script>
+    <script src="./js/blocks/transform.js"></script>
+    <script src="./js/blocks/prediction.js"></script>
+    <script src="./js/blocks/quantization.js"></script>
+    <script src="./js/blocks/entropy.js"></script>
+    <script src="./js/blocks/reconstruction.js"></script>
+    <script src="./js/engine/pipeline.js"></script>
+    <script src="./js/engine/metrics.js"></script>
+    <script src="./js/ui/visualizer.js"></script>
+    <script src="./js/app.js"></script>
 </body>
 </html>
