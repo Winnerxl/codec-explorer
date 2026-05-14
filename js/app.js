@@ -432,12 +432,13 @@
                     executePipeline();
                 }
             } else if (blockId) {
-                addBlockToPipeline(blockId);
+                var dropIdx = getDropIndex(container, e.clientX);
+                addBlockToPipeline(blockId, dropIdx);
             }
         });
     }
 
-    function addBlockToPipeline(blockId) {
+    function addBlockToPipeline(blockId, atIndex) {
         var blockDef = registry.get(blockId);
         if (!blockDef) return;
         var defaultParams = {};
@@ -447,7 +448,11 @@
                 if (p.default !== undefined) defaultParams[p.key] = p.default;
             }
         }
-        pipeline.addStep(blockId, defaultParams);
+        if (atIndex !== undefined && atIndex < pipeline.steps.length) {
+            pipeline.insertStep(atIndex, blockId, defaultParams);
+        } else {
+            pipeline.addStep(blockId, defaultParams);
+        }
         renderPipeline();
         executePipeline();
     }
@@ -634,6 +639,121 @@
         }
 
         setupAudioPlayback();
+        setupRDAnalysis();
+    }
+
+    // ── R-D Analysis ──
+    function setupRDAnalysis() {
+        var rdBtn = $('#btn-rd-analysis');
+        var rdModal = $('#rd-modal');
+        var rdClose = $('#rd-modal-close');
+        var rdRunBtn = $('#rd-run-sweep');
+        var rdStatus = $('#rd-status');
+        var rdCanvas = $('#rd-canvas');
+        var rdTableWrapper = $('#rd-table-wrapper');
+
+        if (!rdBtn || !rdModal) return;
+
+        // Open modal
+        rdBtn.addEventListener('click', function() {
+            rdModal.style.display = 'flex';
+        });
+
+        // Close modal
+        rdClose.addEventListener('click', function() {
+            rdModal.style.display = 'none';
+        });
+
+        // Close on overlay click
+        rdModal.addEventListener('click', function(e) {
+            if (e.target === rdModal) rdModal.style.display = 'none';
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && rdModal.style.display !== 'none') {
+                rdModal.style.display = 'none';
+            }
+        });
+
+        // Run sweep
+        rdRunBtn.addEventListener('click', function() {
+            var steps = pipeline.getSteps();
+            if (steps.length === 0) {
+                rdStatus.textContent = '⚠ Pipeline is empty — add blocks first.';
+                return;
+            }
+
+            var qInfo = B.RDAnalysis.findQuantBlock(steps);
+            if (!qInfo) {
+                rdStatus.textContent = '⚠ No quantization block in pipeline. Add a Quantizer to sweep.';
+                return;
+            }
+
+            rdStatus.textContent = '⏳ Running sweep...';
+            rdRunBtn.disabled = true;
+
+            // Use setTimeout to let the UI update before the blocking sweep
+            setTimeout(function() {
+                var t0 = performance.now();
+                var result = B.RDAnalysis.runRDSweep(pipeline, computeMetrics);
+                var elapsed = performance.now() - t0;
+
+                if (result.error) {
+                    rdStatus.textContent = '⚠ ' + result.error;
+                    rdRunBtn.disabled = false;
+                    return;
+                }
+
+                rdStatus.textContent = '✓ Swept ' + result.data.length + ' points in ' + elapsed.toFixed(0) + 'ms';
+                rdRunBtn.disabled = false;
+
+                // Draw chart
+                B.RDAnalysis.drawRDCurve(rdCanvas, result.data);
+
+                // Build data table
+                buildRDTable(rdTableWrapper, result.data, result.sweepLabel);
+
+                // Re-run the pipeline to restore the original state display
+                renderPipeline();
+                executePipeline();
+            }, 50);
+        });
+    }
+
+    function buildRDTable(container, data, sweepLabel) {
+        if (!data || data.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        var html = '<table class="rd-table"><thead><tr>' +
+            '<th>' + sweepLabel + '</th>' +
+            '<th>Bits/Sample</th>' +
+            '<th>PSNR (dB)</th>' +
+            '<th>MSE</th>' +
+            '<th>SNR (dB)</th>' +
+            '<th>Compression</th>' +
+            '<th>Entropy</th>' +
+            '</tr></thead><tbody>';
+
+        for (var i = 0; i < data.length; i++) {
+            var d = data[i];
+            var psnrStr = d.psnr === Infinity ? '∞' : d.psnr.toFixed(2);
+            var snrStr = d.snr === Infinity ? '∞' : d.snr.toFixed(2);
+            html += '<tr>' +
+                '<td>' + d.paramValue + '</td>' +
+                '<td>' + d.bitsPerSample.toFixed(2) + '</td>' +
+                '<td>' + psnrStr + '</td>' +
+                '<td>' + d.mse.toFixed(4) + '</td>' +
+                '<td>' + snrStr + '</td>' +
+                '<td>' + d.compressionRatio.toFixed(2) + '×</td>' +
+                '<td>' + d.entropy.toFixed(3) + '</td>' +
+                '</tr>';
+        }
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
     }
 
     // ── Boot ──

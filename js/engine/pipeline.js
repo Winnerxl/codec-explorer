@@ -17,6 +17,13 @@
         return instanceId;
     };
 
+    PipelineRunner.prototype.insertStep = function(index, blockId, params) {
+        params = params || {};
+        var instanceId = blockId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        this.steps.splice(index, 0, { blockId: blockId, params: params, instanceId: instanceId });
+        return instanceId;
+    };
+
     PipelineRunner.prototype.removeStep = function(index) {
         this.steps.splice(index, 1);
     };

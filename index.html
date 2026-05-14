@@ -40,6 +40,9 @@
                 <button class="header-btn accent" id="run-pipeline" title="Re-run pipeline">
                     ▶ Run
                 </button>
+                <button class="header-btn" id="btn-rd-analysis" title="Rate-Distortion Analysis">
+                    <span>📉</span> R-D Curve
+                </button>
                 <button class="header-btn danger" id="clear-pipeline" title="Clear pipeline">
                     🗑️ Clear
                 </button>
@@ -128,6 +131,25 @@
         </main>
     </div>
 
+    <!-- R-D Analysis Modal -->
+    <div class="modal-overlay" id="rd-modal" style="display:none;">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>📉 Rate–Distortion Analysis</h2>
+                <button class="modal-close" id="rd-modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="rd-controls">
+                    <p class="rd-desc">Sweeps the quantizer parameter across your current pipeline and plots PSNR vs bit-rate.</p>
+                    <button class="header-btn accent" id="rd-run-sweep">▶ Run Sweep</button>
+                    <div class="rd-status" id="rd-status"></div>
+                </div>
+                <canvas id="rd-canvas" width="720" height="420"></canvas>
+                <div class="rd-table-wrapper" id="rd-table-wrapper"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts loaded in dependency order — no modules needed -->
     <script src="./js/utils/math.js"></script>
     <script src="./js/utils/dsp.js"></script>
@@ -140,6 +162,7 @@
     <script src="./js/blocks/reconstruction.js"></script>
     <script src="./js/engine/pipeline.js"></script>
     <script src="./js/engine/metrics.js"></script>
+    <script src="./js/engine/rd-analysis.js"></script>
     <script src="./js/ui/visualizer.js"></script>
     <script src="./js/app.js"></script>
 </body>
