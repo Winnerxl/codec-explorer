@@ -324,6 +324,133 @@
         }
     }
 
+    function drawSpectrum(canvas, magData, sampleRate, options) {
+        options = options || {};
+        var ctx = canvas.getContext('2d');
+        var w = canvas.width, h = canvas.height;
+        var pad = { top: 22, right: 12, bottom: 26, left: 44 };
+        var pw = w - pad.left - pad.right;
+        var ph = h - pad.top - pad.bottom;
+
+        clearCanvas(canvas);
+        if (!magData || magData.length === 0) return;
+
+        // Title
+        ctx.font = '600 10px Inter, sans-serif';
+        ctx.fillStyle = '#f59e0b';
+        ctx.textAlign = 'left';
+        ctx.fillText('FREQUENCY SPECTRUM', pad.left, 14);
+
+        var N = magData.length;
+        var maxFreq = sampleRate ? sampleRate / 2 : N;
+
+        // Find range
+        var minDb = Infinity, maxDb = -Infinity;
+        for (var i = 1; i < N; i++) { // skip DC
+            if (magData[i] < minDb) minDb = magData[i];
+            if (magData[i] > maxDb) maxDb = magData[i];
+        }
+        var dbRange = maxDb - minDb || 1;
+        // Add some headroom
+        minDb -= dbRange * 0.05;
+        maxDb += dbRange * 0.05;
+
+        // Grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        for (var gx = 0; gx <= 5; gx++) {
+            var x = pad.left + (gx / 5) * pw;
+            ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+        }
+        for (var gy = 0; gy <= 4; gy++) {
+            var y = pad.top + (gy / 4) * ph;
+            ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+        }
+
+        // Gradient fill under curve
+        var grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ph);
+        grad.addColorStop(0, options.fillTop || 'rgba(245, 158, 11, 0.25)');
+        grad.addColorStop(1, options.fillBottom || 'rgba(245, 158, 11, 0.02)');
+
+        ctx.beginPath();
+        ctx.moveTo(pad.left, pad.top + ph);
+        for (var i = 1; i < N; i++) {
+            var x = pad.left + ((i - 1) / (N - 2)) * pw;
+            var y = pad.top + ph - ((magData[i] - minDb) / (maxDb - minDb)) * ph;
+            ctx.lineTo(x, clamp(y, pad.top, pad.top + ph));
+        }
+        ctx.lineTo(pad.left + pw, pad.top + ph);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Line
+        ctx.beginPath();
+        for (var i = 1; i < N; i++) {
+            var x = pad.left + ((i - 1) / (N - 2)) * pw;
+            var y = pad.top + ph - ((magData[i] - minDb) / (maxDb - minDb)) * ph;
+            y = clamp(y, pad.top, pad.top + ph);
+            i === 1 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = options.lineColor || '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Axis labels
+        ctx.font = '9px JetBrains Mono, monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.textAlign = 'center';
+
+        // X axis — frequency
+        for (var gx2 = 0; gx2 <= 5; gx2++) {
+            var fVal = (gx2 / 5) * maxFreq;
+            var label;
+            if (fVal >= 1000) label = (fVal / 1000).toFixed(1) + 'k';
+            else label = Math.round(fVal).toString();
+            ctx.fillText(label, pad.left + (gx2 / 5) * pw, pad.top + ph + 14);
+        }
+        ctx.fillText('Hz', pad.left + pw + 2, pad.top + ph + 14);
+
+        // Y axis — dB
+        ctx.textAlign = 'right';
+        for (var gy2 = 0; gy2 <= 4; gy2++) {
+            var dbVal = maxDb - (gy2 / 4) * (maxDb - minDb);
+            ctx.fillText(dbVal.toFixed(0), pad.left - 4, pad.top + (gy2 / 4) * ph + 3);
+        }
+        ctx.save();
+        ctx.translate(10, pad.top + ph / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText('dB', 0, 0);
+        ctx.restore();
+    }
+
+    /**
+     * Get spectrum data from a step's output. Returns { magData, sampleRate } or null.
+     */
+    function getSpectrumData(output) {
+        if (!output) return null;
+        try {
+            if (output.type === 'signal_1d' && output.data && output.data.length > 4) {
+                var sr = output.sampleRate || 8000;
+                var mag = B.fftMagnitude(output.data, true);
+                return { magData: mag, sampleRate: sr };
+            }
+            if (output.type === 'coefficients_1d' && output.data && output.data.length > 4) {
+                var sr = output.sampleRate || 8000;
+                var mag = B.fftMagnitude(output.data, true);
+                return { magData: mag, sampleRate: sr };
+            }
+            if ((output.type === 'image_2d' || output.type === 'coefficients_2d') && output.data && output.data.length > 0) {
+                var mag = B.fft2DMagnitude(output.data);
+                return { magData: mag, sampleRate: output.width || output.data[0].length };
+            }
+        } catch (e) {
+            return null;
+        }
+        return null;
+    }
+
     B.clearCanvas = clearCanvas;
     B.drawWaveform = drawWaveform;
     B.drawBarChart = drawBarChart;
@@ -331,6 +458,8 @@
     B.drawComparisonWaveform = drawComparisonWaveform;
     B.drawErrorMap = drawErrorMap;
     B.drawCodeTable = drawCodeTable;
+    B.drawSpectrum = drawSpectrum;
+    B.getSpectrumData = getSpectrumData;
     B.visualizeStep = visualizeStep;
     B.VIZ_COLORS = VIZ_COLORS;
 })(window.BYOC);

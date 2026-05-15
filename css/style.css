@@ -153,7 +153,103 @@ body {
 .header-btn.danger { color: var(--danger); }
 .header-btn.danger:hover { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); }
 
+.header-btn.step-active {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
 .chevron { font-size: 10px; }
+
+/* ═══ STEP-BY-STEP NAVIGATOR ═══ */
+.step-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px;
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    border-bottom: 1px solid var(--border-medium);
+    position: relative;
+    z-index: 99;
+    animation: fadeInDown 0.25s ease;
+}
+
+.step-nav-btn {
+    padding: 5px 14px;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.step-nav-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+.step-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.step-nav-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    justify-content: center;
+}
+
+.step-nav-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+}
+
+.step-nav-counter {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: #f59e0b;
+}
+
+.step-nav-name {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.step-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #f59e0b, #f97316);
+    border-radius: 0 2px 0 0;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pipeline block highlighting in step mode */
+.pipeline-block.step-current {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3) !important;
+}
+
+.pipeline-block.step-done {
+    opacity: 0.5;
+}
+
+.pipeline-block.step-future {
+    opacity: 0.25;
+}
 
 /* ── Preset Dropdown ── */
 .preset-wrapper { position: relative; }
@@ -698,6 +794,16 @@ body {
 
 .viz-card-error {
     border-color: rgba(239, 68, 68, 0.2);
+}
+
+.viz-card-active {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+    animation: fadeIn 0.3s ease;
+}
+
+.viz-canvas-spectrum {
+    border-top: 1px solid var(--border-subtle);
 }
 
 .viz-header {

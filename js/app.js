@@ -7,6 +7,8 @@
     var drawWaveform = B.drawWaveform;
     var drawErrorMap = B.drawErrorMap;
     var drawComparisonWaveform = B.drawComparisonWaveform;
+    var drawSpectrum = B.drawSpectrum;
+    var getSpectrumData = B.getSpectrumData;
     var create2DArray = B.create2DArray;
     var computeMetrics = B.computeMetrics;
 
@@ -23,6 +25,10 @@
     var lastResults = null;
     var lastMetrics = null;
     var audioContext = null;
+
+    // ── Step-by-Step Mode State ──
+    var stepModeActive = false;
+    var currentStepIndex = 0;
 
     // ── Preset Pipelines ──
     var PRESETS = {
@@ -212,6 +218,13 @@
             var hasError = lastResults && lastResults.error && lastResults.results.length === idx;
             if (isActive) card.classList.add('has-result');
             if (hasError) card.classList.add('has-error');
+
+            // Step mode visual highlighting
+            if (stepModeActive) {
+                if (idx === currentStepIndex) card.classList.add('step-current');
+                else if (idx < currentStepIndex) card.classList.add('step-done');
+                else card.classList.add('step-future');
+            }
 
             // Drag handle in header only — not the whole card
             card.innerHTML =
@@ -477,10 +490,15 @@
             return;
         }
 
-        for (var s = 0; s < lastResults.results.length; s++) {
+        // Determine which steps to show
+        var maxStep = stepModeActive ? Math.min(currentStepIndex + 1, lastResults.results.length) : lastResults.results.length;
+
+        for (var s = 0; s < maxStep; s++) {
             var stepResult = lastResults.results[s];
             var card = document.createElement('div');
             card.className = 'viz-card';
+            // Highlight the current step in step mode
+            if (stepModeActive && s === currentStepIndex) card.classList.add('viz-card-active');
             var cat = registry.categories[stepResult.blockDef.category];
             card.innerHTML =
                 '<div class="viz-header" style="--block-color: ' + (cat ? cat.color : '#666') + '">' +
@@ -500,41 +518,63 @@
                 ctx.font = '12px Inter';
                 ctx.fillText('Visualization error: ' + err.message, 10, 90);
             }
+
+            // Add frequency spectrum canvas if data supports it
+            var specData = getSpectrumData(stepResult.output);
+            if (specData) {
+                var specCanvas = document.createElement('canvas');
+                specCanvas.className = 'viz-canvas viz-canvas-spectrum';
+                specCanvas.width = 360;
+                specCanvas.height = 120;
+                card.insertBefore(specCanvas, card.querySelector('.viz-info'));
+                try {
+                    drawSpectrum(specCanvas, specData.magData, specData.sampleRate);
+                } catch (e) {
+                    // silently skip if FFT fails
+                }
+            }
         }
 
-        // Error signal / comparison
-        var firstResult = lastResults.results[0];
-        var lastResult2 = lastResults.results[lastResults.results.length - 1];
-        var reconData = lastResult2.output;
+        // Error signal / comparison (only in non-step mode, or at the last step)
+        if (!stepModeActive || currentStepIndex >= lastResults.results.length - 1) {
+            var lastResult2 = lastResults.results[maxStep - 1];
+            var reconData = lastResult2 ? lastResult2.output : null;
 
-        if (reconData && reconData.original) {
-            var errorCard = document.createElement('div');
-            errorCard.className = 'viz-card viz-card-error';
-            errorCard.innerHTML =
-                '<div class="viz-header" style="--block-color: #ef4444">' +
-                    '<span>⚠️ Error Signal</span>' +
-                '</div>' +
-                '<canvas class="viz-canvas" width="360" height="180"></canvas>';
-            container.appendChild(errorCard);
+            if (reconData && reconData.original) {
+                var errorCard = document.createElement('div');
+                errorCard.className = 'viz-card viz-card-error';
+                errorCard.innerHTML =
+                    '<div class="viz-header" style="--block-color: #ef4444">' +
+                        '<span>⚠️ Error Signal</span>' +
+                    '</div>' +
+                    '<canvas class="viz-canvas" width="360" height="180"></canvas>';
+                container.appendChild(errorCard);
 
-            var errorCanvas = errorCard.querySelector('canvas');
-            if (reconData.type === 'image_2d' && reconData.original && reconData.original.type === 'image_2d') {
-                var orig = reconData.original.data;
-                var recon = reconData.data;
-                var h = orig.length, w = orig[0].length;
-                var errorImg = create2DArray(h, w);
-                for (var y = 0; y < h; y++)
-                    for (var x = 0; x < w; x++)
-                        errorImg[y][x] = orig[y][x] - recon[y][x];
-                drawErrorMap(errorCanvas, errorImg);
-            } else if (reconData.type === 'signal_1d' && reconData.original && reconData.original.data) {
-                var orig = reconData.original.data;
-                var recon = reconData.data;
-                var N = Math.min(orig.length, recon.length);
-                var err = new Float32Array(N);
-                for (var i = 0; i < N; i++) err[i] = orig[i] - recon[i];
-                drawWaveform(errorCanvas, err, { color: '#ef4444', fillColor: 'rgba(239,68,68,0.1)' });
+                var errorCanvas = errorCard.querySelector('canvas');
+                if (reconData.type === 'image_2d' && reconData.original && reconData.original.type === 'image_2d') {
+                    var orig = reconData.original.data;
+                    var recon = reconData.data;
+                    var h = orig.length, w = orig[0].length;
+                    var errorImg = create2DArray(h, w);
+                    for (var y = 0; y < h; y++)
+                        for (var x = 0; x < w; x++)
+                            errorImg[y][x] = orig[y][x] - recon[y][x];
+                    drawErrorMap(errorCanvas, errorImg);
+                } else if (reconData.type === 'signal_1d' && reconData.original && reconData.original.data) {
+                    var orig2 = reconData.original.data;
+                    var recon2 = reconData.data;
+                    var N = Math.min(orig2.length, recon2.length);
+                    var err2 = new Float32Array(N);
+                    for (var i = 0; i < N; i++) err2[i] = orig2[i] - recon2[i];
+                    drawWaveform(errorCanvas, err2, { color: '#ef4444', fillColor: 'rgba(239,68,68,0.1)' });
+                }
             }
+        }
+
+        // Auto-scroll to the current step's viz card in step mode
+        if (stepModeActive) {
+            var activeCard = container.querySelector('.viz-card-active');
+            if (activeCard) activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
 
@@ -626,6 +666,8 @@
                 pipeline.clear();
                 lastResults = null;
                 lastMetrics = null;
+                // Exit step mode on clear
+                if (stepModeActive) toggleStepMode(false);
                 renderPipeline();
                 renderVisualizations();
                 renderMetrics();
@@ -639,7 +681,94 @@
         }
 
         setupAudioPlayback();
+        setupStepMode();
         setupRDAnalysis();
+    }
+
+    // ── Step-by-Step Mode ──
+    function toggleStepMode(forceState) {
+        stepModeActive = forceState !== undefined ? forceState : !stepModeActive;
+
+        var stepBtn = $('#btn-step-mode');
+        var stepNav = $('#step-nav');
+
+        if (stepModeActive) {
+            var steps = pipeline.getSteps();
+            if (steps.length === 0) {
+                stepModeActive = false;
+                return;
+            }
+            currentStepIndex = 0;
+            stepBtn.classList.add('step-active');
+            stepNav.style.display = 'flex';
+            updateStepUI();
+            renderPipeline();
+            renderVisualizations();
+        } else {
+            currentStepIndex = 0;
+            stepBtn.classList.remove('step-active');
+            stepNav.style.display = 'none';
+            renderPipeline();
+            renderVisualizations();
+        }
+    }
+
+    function updateStepUI() {
+        var steps = pipeline.getSteps();
+        var total = steps.length;
+        if (total === 0) return;
+
+        var idx = Math.min(currentStepIndex, total - 1);
+        var step = steps[idx];
+
+        $('#step-counter').textContent = (idx + 1) + ' / ' + total;
+        $('#step-name').textContent = step.blockDef.icon + ' ' + step.blockDef.name;
+
+        // Progress bar
+        var pct = total <= 1 ? 100 : ((idx / (total - 1)) * 100);
+        $('#step-progress').style.width = pct + '%';
+
+        // Disable buttons at bounds
+        $('#step-prev').disabled = idx <= 0;
+        $('#step-next').disabled = idx >= total - 1;
+    }
+
+    function goToStep(newIndex) {
+        var steps = pipeline.getSteps();
+        if (steps.length === 0) return;
+        currentStepIndex = Math.max(0, Math.min(newIndex, steps.length - 1));
+        updateStepUI();
+        renderPipeline();
+        renderVisualizations();
+    }
+
+    function setupStepMode() {
+        var stepBtn = $('#btn-step-mode');
+        var prevBtn = $('#step-prev');
+        var nextBtn = $('#step-next');
+
+        if (!stepBtn) return;
+
+        stepBtn.addEventListener('click', function() { toggleStepMode(); });
+
+        if (prevBtn) prevBtn.addEventListener('click', function() { goToStep(currentStepIndex - 1); });
+        if (nextBtn) nextBtn.addEventListener('click', function() { goToStep(currentStepIndex + 1); });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (!stepModeActive) return;
+            // Don't capture if user is typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                goToStep(currentStepIndex - 1);
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                goToStep(currentStepIndex + 1);
+            } else if (e.key === 'Escape') {
+                toggleStepMode(false);
+            }
+        });
     }
 
     // ── R-D Analysis ──

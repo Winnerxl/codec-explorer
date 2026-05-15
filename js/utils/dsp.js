@@ -295,4 +295,92 @@
                 qm[y][x] = clamp(Math.floor((B.JPEG_Q50[y][x] * S + 50) / 100), 1, 255);
         return qm;
     };
+
+    // ═══ FFT (Radix-2 Cooley-Tukey) ═══
+    // Returns magnitude spectrum (real-valued array of length N/2)
+    B.fft = function(signal) {
+        // Pad to next power of 2
+        var N = 1;
+        while (N < signal.length) N <<= 1;
+        var real = new Float32Array(N);
+        var imag = new Float32Array(N);
+        for (var i = 0; i < signal.length; i++) real[i] = signal[i];
+
+        // Bit-reversal permutation
+        var bits = Math.log2(N);
+        for (var i = 0; i < N; i++) {
+            var j = 0;
+            for (var b = 0; b < bits; b++) j = (j << 1) | ((i >> b) & 1);
+            if (j > i) {
+                var tmp = real[i]; real[i] = real[j]; real[j] = tmp;
+                tmp = imag[i]; imag[i] = imag[j]; imag[j] = tmp;
+            }
+        }
+
+        // Butterfly
+        for (var size = 2; size <= N; size <<= 1) {
+            var half = size >> 1;
+            var angle = -2 * Math.PI / size;
+            for (var i = 0; i < N; i += size) {
+                for (var k = 0; k < half; k++) {
+                    var wR = Math.cos(angle * k);
+                    var wI = Math.sin(angle * k);
+                    var tR = wR * real[i + k + half] - wI * imag[i + k + half];
+                    var tI = wR * imag[i + k + half] + wI * real[i + k + half];
+                    real[i + k + half] = real[i + k] - tR;
+                    imag[i + k + half] = imag[i + k] - tI;
+                    real[i + k] += tR;
+                    imag[i + k] += tI;
+                }
+            }
+        }
+
+        return { real: real, imag: imag, N: N };
+    };
+
+    // Returns magnitude spectrum array (dB scale, length N/2)
+    B.fftMagnitude = function(signal, dB) {
+        var result = B.fft(signal);
+        var N = result.N;
+        var half = N >> 1;
+        var mag = new Float32Array(half);
+        for (var i = 0; i < half; i++) {
+            mag[i] = Math.sqrt(result.real[i] * result.real[i] + result.imag[i] * result.imag[i]) / N;
+        }
+        if (dB) {
+            for (var i = 0; i < half; i++) {
+                mag[i] = 20 * Math.log10(Math.max(mag[i], 1e-10));
+            }
+        }
+        return mag;
+    };
+
+    // 2D FFT magnitude for images — flatten rows, compute average row spectrum
+    B.fft2DMagnitude = function(data2d) {
+        var h = data2d.length, w = data2d[0].length;
+        var half = 1;
+        while (half < w) half <<= 1;
+        half >>= 1;
+        var avgMag = new Float32Array(half);
+
+        for (var y = 0; y < h; y++) {
+            var row = new Float32Array(w);
+            for (var x = 0; x < w; x++) row[x] = data2d[y][x];
+            var mag = B.fftMagnitude(row, true);
+            for (var i = 0; i < Math.min(mag.length, half); i++) avgMag[i] += mag[i];
+        }
+        for (var i = 0; i < half; i++) avgMag[i] /= h;
+        return avgMag;
+    };
+
+    // Helper: flatten 2D array to 1D
+    B.flatten2D = function(data2d) {
+        var h = data2d.length, w = data2d[0].length;
+        var flat = new Float32Array(h * w);
+        var idx = 0;
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+                flat[idx++] = data2d[y][x];
+        return flat;
+    };
 })(window.BYOC);

@@ -40,6 +40,9 @@
                 <button class="header-btn accent" id="run-pipeline" title="Re-run pipeline">
                     ▶ Run
                 </button>
+                <button class="header-btn" id="btn-step-mode" title="Step-by-step mode">
+                    <span>👣</span> Step Mode
+                </button>
                 <button class="header-btn" id="btn-rd-analysis" title="Rate-Distortion Analysis">
                     <span>📉</span> R-D Curve
                 </button>
@@ -48,6 +51,18 @@
                 </button>
             </div>
         </header>
+
+        <!-- Step-by-Step Navigator (hidden by default) -->
+        <div class="step-nav" id="step-nav" style="display:none;">
+            <button class="step-nav-btn" id="step-prev" title="Previous step">◀ Prev</button>
+            <div class="step-nav-info">
+                <span class="step-nav-label">Step</span>
+                <span class="step-nav-counter" id="step-counter">1 / 1</span>
+                <span class="step-nav-name" id="step-name">—</span>
+            </div>
+            <button class="step-nav-btn" id="step-next" title="Next step">Next ▶</button>
+            <div class="step-progress" id="step-progress"></div>
+        </div>
 
         <!-- ═══ Main 3-Column Layout ═══ -->
         <main class="app-main">
